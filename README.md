@@ -14,6 +14,8 @@ The problem appears to already have been solved to some extent at https://github
 
 The alternative is to develop our own "light-weight" master and slave with some fixed function, but focus on a setup which allows us to simulate at scale. An introduces a whole bunch of randomness to the simulated "process" to attempt to ensure that the network traffic is dynamic.
 
+Part of the scaling is dependent on the underlying operating system. The intention is to use Linux and network sub-interfaces with spoofed hardware MAC addresses to masquerade as PLC vendor.
+
 
 ## References
 
@@ -49,6 +51,7 @@ The alternative is to develop our own "light-weight" master and slave with some 
 * FR5 - Need to log messages to log file for audit and troubleshooting purposes
 * FR6 - Need the client/master to randomly write to coils and holding registers
 * FR7 - Need the server/slave to randomly set values for discrete input and input registers
+* FR8 - Need a set of scripts to dynamically spin up virtual machines, set-up network interfaces, etc start the slaves, run masters to generate traffic, etc.
 
 ### Non-functional Requirements - How it does it
 
