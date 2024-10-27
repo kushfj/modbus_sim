@@ -13,7 +13,13 @@ import asyncio
 
 
 # declare contants
-REG_SIZE = 3 # register size for coils, etc to use using init.
+# TODO: set to realistic values similar to actual PLC hardware, theoratical size 10K
+#REG_SIZE = 3 # register size for coils, etc to use using init.
+MAX_COIL_REG_SIZE = 64
+MAX_HOLD_REG_SIZE = 60
+MAX_DISCRETE_IN_REG_SIZE = 123 
+MAX_INPUT_REG_SIZE = 123
+
 
 """
 General modbus registers
@@ -54,7 +60,7 @@ LOG_FILE = 'proto_server.log'
 
 
 # declare global variables - this is a bad things, but...
-logging.basicConfig(filename=LOG_FILE, encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
+logging.basicConfig(filename=LOG_FILE, encoding='utf-8', level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 LOGGER = logging.getLogger(__name__)
 #LOGGER.setLevel(logging.INFO)
 
@@ -63,10 +69,10 @@ def get_modbus_data_model():
     LOGGER.debug('get_modbus_data_model')
     
     # declare local variables
-    discrete_input_registers = ModbusSequentialDataBlock(0, [15]*REG_SIZE) # input registers block data store
-    coil_output_registers = ModbusSequentialDataBlock(0, [16]*REG_SIZE) # coil/output block data store
-    holding_registers = ModbusSequentialDataBlock(0, [17]*REG_SIZE) # holding registers block data store
-    input_registers = ModbusSequentialDataBlock(0, [18]*REG_SIZE) # input registers block data store
+    discrete_input_registers = ModbusSequentialDataBlock(0, [15]*MAX_DISCRETE_IN_REG_SIZE) # input registers block data store
+    coil_output_registers = ModbusSequentialDataBlock(0, [16]*MAX_COIL_REG_SIZE) # coil/output block data store
+    holding_registers = ModbusSequentialDataBlock(0, [17]*MAX_HOLD_REG_SIZE) # holding registers block data store
+    input_registers = ModbusSequentialDataBlock(0, [18]*MAX_INPUT_REG_SIZE) # input registers block data store
     
     # construct modbus data model using block data stores
     modbus_data_model = ModbusSlaveContext(
@@ -98,16 +104,46 @@ def get_server_identity():
     return modbus_device_id
 
 
+
+async def modbus_server_input_register_updates(modbus_server_context, slave_id:int = SLAVE_ID):
+    LOGGER.debug('modbus_server_input_register_updates')
+    await modbus_server_register_updates(
+            modbus_server_context, 
+            modbus_function_code=0x04, 
+            address=0,
+            count=MAX_INPUT_REG_SIZE,
+            slave_id=slave_id
+        )
+    return
+
+
 async def modbus_server_discrete_input_register_updates(modbus_server_context, slave_id:int = SLAVE_ID):
     LOGGER.debug('modbus_server_discrete_input_register_updates')
+    await modbus_server_register_updates(
+            modbus_server_context, 
+            modbus_function_code=0x02, 
+            address=0,
+            count=MAX_DISCRETE_IN_REG_SIZE,
+            slave_id=slave_id
+        )
+    return
+
+
+async def modbus_server_register_updates(modbus_server_context, modbus_function_code:int = 0x02, address:int = 0, count:int = 1, slave_id:int = SLAVE_ID):
+    LOGGER.debug('modbus_server_register_updates')
 
     # check parameters
     assert modbus_server_context
+    assert modbus_function_code
+    if modbus_function_code < 0x01 or modbus_function_code > 0x06:
+        msg = f'modbus_server_register_updates: invalid function code: {function_code}, must be in range 0x01 - 0x06'
+        LOGGER.error(msg)
+        print(msg)
+        return
 
     # declare local variables
-    modbus_function_code = 0x02 # Read discrete input status
-    starting_address = 0x10
-    num_registers = REG_SIZE
+    starting_address = address
+    num_registers = count
     values = None
     fifty_fifty = [0,1]
 
@@ -122,7 +158,7 @@ async def modbus_server_discrete_input_register_updates(modbus_server_context, s
             modbus_function_code,
             address=starting_address, 
             values=values)
-    LOGGER.info(f'modbus_server_discrete_input_register_updates: initialised {num_registers} discrete input registers to 0')
+    LOGGER.info(f'modbus_server_register_updates: initialised {num_registers} registers to 0')
 
     # continuous loop to randomise values in discrete input registers every second
     flip = True # DEBUG
@@ -130,8 +166,7 @@ async def modbus_server_discrete_input_register_updates(modbus_server_context, s
         await asyncio.sleep(1)
 
         # randomise the registers to process each time
-        #num_registers = random.randint(1,REG_SIZE) # FIXME: blocks here
-        num_registers = REG_SIZE
+        #num_registers = random.randint(1,MAX_DISCRETE_IN_REG_SIZE) # FIXME: blocks here
         values = modbus_server_context[slave_id].getValues(
                 modbus_function_code, 
                 address=starting_address, 
@@ -154,7 +189,7 @@ async def modbus_server_discrete_input_register_updates(modbus_server_context, s
                 address=starting_address, 
                 values=values
             )
-        LOGGER.info(f"modbus_server_discrete_input_register_updates: set values: {values!s} at: {starting_address!s} for slave: {slave_id}")
+        #LOGGER.info(f"modbus_server_discrete_input_register_updates: set values: {values!s} at: {starting_address!s} for slave: {slave_id}")
 
 
 async def run_modbus_server(ipaddr:str = IP_ADDR, port:int = TCP_PORT, slave_id:int = SLAVE_ID):
@@ -171,16 +206,21 @@ async def run_modbus_server(ipaddr:str = IP_ADDR, port:int = TCP_PORT, slave_id:
     server_id = get_server_identity()
     server_addr = (ipaddr, port) # socket tuple of ipaddr and port
 
-    # create a task to update discrete input registers
-    discrete_input_reg_task = asyncio.create_task(modbus_server_discrete_input_register_updates(server_context, slave_id))
-    discrete_input_reg_task.set_name("Distrete input register task")
+    # create a task to update discret input registers
+    discrete_input_reg_updater_task = asyncio.create_task(modbus_server_discrete_input_register_updates(server_context, slave_id))
+    discrete_input_reg_updater_task.set_name("Distrete input register updater task")
+
+    # create a task to update input registers
+    input_reg_updater_task = asyncio.create_task(modbus_server_input_register_updates(server_context, slave_id))
+    input_reg_updater_task.set_name("Input register updater task")
 
     # start and run async TCP modbus server
     try:
         LOGGER.debug(f'run_modbus_server {ipaddr}:{port}')
         print('modbus slave running: ')
         modbus_server = await StartAsyncTcpServer(context=server_context, identity=server_id, address=server_addr) 
-        discrete_input_reg_task.cancel() # kill the async thread too
+        discrete_input_reg_updater_task.cancel() # kill the async thread too
+        input_reg_updater_task.cancel() # kill the async thread too
     except PermissionError as pe:
         LOGGER.error('run_modbus_server: no permission to bind socket')
     
@@ -220,5 +260,5 @@ async def run_main():
 
 if __name__ == "__main__":
     LOGGER.debug('proto_server starting')
-    asyncio.run(run_main(), debug=True)
-    LOGGER.debug('proto_server stopped')
+    asyncio.run(run_main(), debug=False)
+    LOGGER.debug('proto_server done')
