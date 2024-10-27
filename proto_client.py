@@ -17,7 +17,7 @@ import random
 
 # declare contants
 
-NUM_RUNS = 5 # number of times to poll/invoke handlers
+NUM_RUNS = 900000 # number of times to poll/invoke handlers
 
 IP_ADDR = '127.0.0.1'
 TCP_PORT = 502
@@ -25,10 +25,13 @@ SLAVE_ID = 0x01
 
 COMMS_NAME='vPLC simulation'
 
-# TODO: set to realistic values similar to actual PLC hardware
-MAX_COILS = 64
+# TODO: set to realistic values similar to actual PLC hardware, theoratical size 10K
+# TODO: move these constants into a shared module, its duplicated on the client and serber and is currently manullay kept in sync - likely to break something in the future
+# TODO: make log level a configurable parameter and accept it as a cli argument
+MAX_COIL_REG = 64
 MAX_HOLD_REG = 60
-MAX_DISCRETE_IN_REG = 3 
+MAX_DISCRETE_IN_REG = 123 
+MAX_INPUT_REG = 123 # max is 125-word i.e. 256-bytes, but for modbus TCP this becomes 123-words
 
 LOG_FILE = 'proto_client.log'
 
@@ -36,7 +39,7 @@ LOG_FILE = 'proto_client.log'
 # declare global variables - this is a bad things, but...
 
 # TODO: make logfile specific to slave and slave_id - init in main()
-logging.basicConfig(filename=LOG_FILE, encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
+logging.basicConfig(filename=LOG_FILE, encoding='utf-8', level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 LOGGER = logging.getLogger(__name__)
 
 # TODO: modify handler functions to split read and write
@@ -75,7 +78,7 @@ async def modbus_poll_holding_register_handler(modbus_tcp_client, slave_id:int =
     assert slave_id
 
     # declare local variables
-    start_address = 0x00
+    start_address = 0x01
     num_holding_reg = 1
     modbus_response = None
     value = None
@@ -87,7 +90,7 @@ async def modbus_poll_holding_register_handler(modbus_tcp_client, slave_id:int =
     """
     try:
         #print('[*] reading holding registers')
-        print('.', end='')
+        print('.', end='', flush=True)
         modbus_response = await modbus_tcp_client.read_holding_registers(
                 address=start_address, 
                 count=num_holding_reg, 
@@ -137,7 +140,7 @@ async def modbus_poll_discrete_input_handler(modbus_tcp_client, slave_id:int = S
     assert slave_id
 
     # declare local variables
-    start_address = 0x00
+    start_address = 0x01
     num_registers = None
     modbus_response = None
     value = None
@@ -167,6 +170,43 @@ async def modbus_poll_discrete_input_handler(modbus_tcp_client, slave_id:int = S
         print(f'[!] {msg}')
 
 
+async def modbus_poll_input_registers_handler(modbus_tcp_client, slave_id:int = SLAVE_ID):
+    LOGGER.debug(f'modbus_poll_input_registers_handler: slave={slave_id}')
+
+    # check parameters
+    assert modbus_tcp_client
+    assert slave_id
+
+    # declare local variables
+    start_address = 0x01
+    num_registers = None
+    modbus_response = None
+    value = None
+
+    # randomise the number of registers to read
+    num_registers = random.randint(1,MAX_INPUT_REG) 
+
+    try:
+        modbus_response = await modbus_tcp_client.read_input_registers(
+                address=start_address, 
+                count=num_registers, 
+                slave=slave_id
+            )
+    except ModbusException as me:
+        msg = f'modbus_poll_input_registers_handler: unable to read: {num_registers} input registers at: {start_address} for slave: {slave_id}'
+        LOGGER.error(msg)
+        print('!', end='', flush=True)
+        return
+
+    if modbus_response and not modbus_response.isError():
+        LOGGER.info(f'modbus_poll_input_registers_handler: read: {num_registers} input registers at: {start_address} for slave: {slave_id}')
+    else:
+        msg = f'modbus_poll_input_registers_handler: error reading: {num_registers} input registers at: {start_address} for slave: {slave_id}'
+        LOGGER.error(msg)
+        print('!', end='', flush=True)
+
+
+
 async def modbus_poll_coils_handler(modbus_tcp_client, slave_id:int = SLAVE_ID):
     LOGGER.debug(f'modbus_poll_coils_handler: slave={slave_id}')
 
@@ -175,7 +215,7 @@ async def modbus_poll_coils_handler(modbus_tcp_client, slave_id:int = SLAVE_ID):
     assert slave_id
 
     # declare local variables
-    start_address = 0x00
+    start_address = 0x01
     num_coils = 1
     modbus_response = None
     value = None
@@ -207,7 +247,7 @@ async def modbus_poll_coils_handler(modbus_tcp_client, slave_id:int = SLAVE_ID):
     if write_coils:
         try:
             value = random.choice(fifty_fifty) # random value
-            rand_len = random.choice(range(1,MAX_COILS+1)) # random length from 1 to 64 bits 
+            rand_len = random.choice(range(1,MAX_COIL_REG+1)) # random length from 1 to 64 bits 
             #print('[*] writing coils')
             print('.', end='')
             await modbus_tcp_client.write_coils(address=start_address, values=([value]*rand_len), slave=slave_id)
@@ -225,12 +265,14 @@ async def modbus_poll(modbus_tcp_client, slave_id:int = SLAVE_ID):
     assert modbus_tcp_client
 
     # do client stuff
-    # TODO - maybe threat these for more chaos
+    # TODO - maybe thread these for more chaos
+    # TODO - accept number of runs as a cli paramter, or run forever if nothing supplied
     print('[*] modbus master running: ', end='')
     for i in range(NUM_RUNS):
         await modbus_poll_coils_handler(modbus_tcp_client, slave_id)
         await modbus_poll_holding_register_handler(modbus_tcp_client, slave_id)
         await modbus_poll_discrete_input_handler(modbus_tcp_client, slave_id)
+        await modbus_poll_input_registers_handler(modbus_tcp_client, slave_id)
     print('\n[+] done!')
 
     # TODO: do something sensible here
