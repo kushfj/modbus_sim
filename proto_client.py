@@ -28,6 +28,8 @@ COMMS_NAME='vPLC simulation'
 # TODO: set to realistic values similar to actual PLC hardware, theoratical size 10K
 # TODO: move these constants into a shared module, its duplicated on the client and serber and is currently manullay kept in sync - likely to break something in the future
 # TODO: make log level a configurable parameter and accept it as a cli argument
+# TODO: make type of client calls parameterised i.e., all for all, coil for read coils only, etc.
+
 MAX_COIL_REG = 64
 MAX_HOLD_REG = 60
 MAX_DISCRETE_IN_REG = 123 
