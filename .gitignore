@@ -1,5 +1,7 @@
 *~
 *.sw?
-*.log
 .ipynb_checkpoints/
 *.ipynb
+*.log
+*.txt
+*.sh
