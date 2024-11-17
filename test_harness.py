@@ -305,7 +305,7 @@ def main():
                 print(command)
 
                 # execute the modbus prototype server on each sub-interface
-                command = f'sudo python3 proto_client.py -i {slave_ip} 502' 
+                command = f'sudo python3 proto_client.py -i {slave_ip} 502 &' 
                 print(command)
 
         pass
