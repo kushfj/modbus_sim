@@ -1,6 +1,6 @@
 *~
 *.sw?
-python-venv/
+*_venv/
 *.log
 *.txt
 *.sh
