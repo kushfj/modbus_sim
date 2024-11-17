@@ -17,7 +17,7 @@ import random
 
 # declare contants
 
-NUM_RUNS = 900000 # number of times to poll/invoke handlers
+NUM_RUNS = 100 # number of times to poll/invoke handlers, tested up to 900000
 
 IP_ADDR = '127.0.0.1'
 TCP_PORT = 502
