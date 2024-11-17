@@ -57,7 +57,7 @@ def script_preamble():
     Function to set the shebang and the virtual environment activation for Python
     """
     print('#!/usr/bin/bash')
-    print('. ./python_env/bin/activate')
+    print('source ./python_env/bin/activate')
 
 
 def append_to_slave_list(ip_addr : str, slaves_list_filename : str = DEFAULT_SLAVES_LIST_FILENAME):
