@@ -16,6 +16,25 @@ The alternative is to develop our own "light-weight" master and slave with some 
 
 Part of the scaling is dependent on the underlying operating system. The intention is to use Linux and network sub-interfaces with spoofed hardware MAC addresses to masquerade as PLC vendor.
 
+## Test Harness Usage
+
+//Note:// currently only tested on Ubuntu Server VMs on VirtualBox. Some hardcoded interface addresses are used due to rapid prototyping approach for the development. These need to be dynamically determined based on the host on which the scripts are run, or parametertised as command line arguments to be specified by the user.
+
+The test harness Python script is used to generate a set of command which are printed to STDOUT. These can be redirected to test files and executed as bash scripts on the respective hosts to run the client/master or server/slave scripts.
+
+The harness scripts assumes that the networking between the client and server exists and is working correctly. 
+
+### Usage
+
+Ensure that the development environment set-up is completed on both the client and server hosts (refer below)
+
+  - Run the test harness on the slave/server machine. This will ensure that the slaves list file (slaves.txt) is generated and all slaves are started and waiting for connection. The demo command generates a script to instantiate 100 servers and outputs the list of IP addresses to a file called demo_list.txt, and redirects STDOUT to the script to be executed on the server called run_slaves.sh
+    - `./python_venv/bin/python ./test_harness.py -s server -n 100 -l demo_list.txt > run_slaves.sh`
+  - Transfer the slaves list file (slaves.txt) to the client/master machine
+  - Run the test hardness script on the master/client machine. The script will use the slaves list file as an input and cluster them across the specified number of clients and generate commands to connect to the servers as needed. The demo command below accepts the demo_list.txt file and redirects STDOUT to the script to be executed on the client called run_masters.sh
+    - `./python_venv/bin/python ./test_harness.py -s client -n 5 -l demo_list.txt > run_masters.sh`
+  - On the slaves VM execute the slaves script e.g. run_slaves.sh
+  - Wait for the script to finish executing and run the masters script e.g. run_masters.sh on the masters VM
 
 ## References
 
@@ -75,11 +94,14 @@ Part of the scaling is dependent on the underlying operating system. The intenti
 
 * python -m venv python_venv
 * . ./python_venv/bin/activate
-* pip install pymodbus
+* ./python_venv/bin/pip install --upgrade pip
+* pip install pymodbus # or pip install -r requirements.txt
 
 
 ## Future Work
 
 * User configurable payloads e.g. from a configuration file
-* User customisable IP addresses
+* User customisable IP addresses and interfaces for test harness
+* User customisable slave function, read, write, read/write
+* User customisable port on the test_harness
 * Integrate with hardware process
