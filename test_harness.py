@@ -246,6 +246,7 @@ def main():
                         help=f'file containing line separated list of IP addresses for slaves for masters to poll, ignored for master/client setup, default="{DEFAULT_SLAVES_LIST_FILENAME}"')
     args = parser.parse_args()
 
+
     # check set-up type
     if not args.setup:
         log_info('# [!] main: must specify setup type to setup a client or a server')
@@ -327,6 +328,8 @@ def main():
         # check if slaves list specified
         if not args.slaves_list:
             slaves_list = DEFAULT_SLAVES_LIST_FILENAME
+        else:
+            slaves_list = args.slaves_list
 
         # generate commands to create sub-interfaces on VM for each slave
         for i in range(num):
@@ -337,8 +340,8 @@ def main():
             command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} {ip_addr} hw ether {mac_addr} up'
             print(command)
 
-            # execute the modbus prototype client on each sub-interface
-            command = f'sudo python3 proto_server.py -i {ip_addr} 502'
+            # execute the modbus prototype client on each sub-interface - and send to background
+            command = f'sudo python3 proto_server.py -i {ip_addr} 502 &'
             print(command)
 
             # write the slave IP address to the slave list output file
