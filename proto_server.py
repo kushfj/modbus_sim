@@ -217,7 +217,7 @@ async def run_modbus_server(ipaddr:str = IP_ADDR, port:int = TCP_PORT, slave_id:
     # start and run async TCP modbus server
     try:
         LOGGER.debug(f'run_modbus_server {ipaddr}:{port}')
-        print('modbus slave running: ')
+        print(f'attempting to start modbus slave on socket {ipaddr}:{port}...')
         modbus_server = await StartAsyncTcpServer(context=server_context, identity=server_id, address=server_addr) 
         discrete_input_reg_updater_task.cancel() # kill the async thread too
         input_reg_updater_task.cancel() # kill the async thread too
