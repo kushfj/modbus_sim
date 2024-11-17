@@ -40,6 +40,8 @@ import math
 # declare global variables - yes I know this is terrible, but meh for now!
 #
 
+PYTHON='./python_venv/bin/python'
+
 IFACE='enp0s3'
 DEFAULT_SLAVES_LIST_FILENAME='slaves.txt'
 LINE_SEPARATOR='\n' # TODO - use platform detection to determine separator
@@ -58,6 +60,13 @@ def script_preamble():
     """
     print('#!/usr/bin/bash')
     print('source ./python_venv/bin/activate')
+
+
+def script_post():
+    """
+    Function to set the deactivation of virtual environment for Python
+    """
+    print('deactivate')
 
 
 def append_to_slave_list(ip_addr : str, slaves_list_filename : str = DEFAULT_SLAVES_LIST_FILENAME):
@@ -258,20 +267,18 @@ def main():
     # check set-up type
     if not args.setup:
         log_info('# [!] main: must specify setup type to setup a client or a server')
-        #sys.exit() # DEBUG - Remove this in prod
+        sys.exit() 
     elif args.setup == 'client' or args.setup == 'master':
         # check if slaves list specified
         if not args.slaves_list:
             log_info('# [!] main: slaves list must be supplied for master set-up')
-            #sys.exit() # DEBUG - Remove this in prod
-            return # DEBUG
+            sys.exit() 
 
         # get slaves list
         slaves = is_valid_slaves_list(args.slaves_list)
         if not slaves:
             log_info('# [!] main: slaves list must have valid IP addresses')
-            #sys.exit() # DEBUG - Remove this in prod
-            return # DEBUG
+            sys.exit() 
 
         # run harness to setup client/master
         log_info('# [+] main: preparing to run harness for client/master')
@@ -299,7 +306,7 @@ def main():
             ip_addr = f'10.10.10.{i+1}'
 
             # create sub-interface - TODO: accept network address as parameter
-            #command = f'ifconfig {IFACE}.{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
+            #command = f'ifconfig {IFACE}:{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
 
             # delete the interface in case it existed
             command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} down'
@@ -310,19 +317,22 @@ def main():
             print(command)
 
             # delete the route created 
-            command = f'sudo /usr/sbin/route del -net 10.0.0.0 netmask 255.0.0.0 dev {IFACE}.{i+1}'
+            command = f'sudo /usr/sbin/route del -net 10.0.0.0 netmask 255.0.0.0 dev {IFACE}:{i+1}'
             print(command)
 
             # process each slave in the current chunk
             for slave_ip in slave_chunks[i]:
 
                 # add static route for slave via the current sub-interface
-                command = f'sudo /usr/sbin/ip route add {slave_ip} dev {IFACE}.{i+1}'
+                command = f'sudo /usr/sbin/ip route add {slave_ip} dev {IFACE}:{i+1}'
                 print(command)
 
                 # execute the modbus prototype server on each sub-interface
-                command = f'sudo python3 proto_client.py -i {slave_ip} -p 502 &' 
+                command = f'sudo {PYTHON} proto_client.py -i {slave_ip} -p 502 &' 
                 print(command)
+
+        # set-up script
+        script_post()
 
         pass
     elif args.setup == 'server' or args.setup == 'slave':
@@ -355,7 +365,7 @@ def main():
             mac_addr = create_mac_addr()
             ip_addr = f'10.20.20.{i+1}'
 
-            #command = f'ifconfig {IFACE}.{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
+            #command = f'ifconfig {IFACE}:{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
             # delete the interface if it exists
             command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} down'
             print(command)
@@ -365,7 +375,7 @@ def main():
             print(command)
 
             # execute the modbus prototype client on each sub-interface - and send to background
-            command = f'sudo python3 proto_server.py -i {ip_addr} -p 502 &'
+            command = f'sudo {PYTHON} proto_server.py -i {ip_addr} -p 502 &'
             print(command)
 
             # write the slave IP address to the slave list output file
@@ -374,7 +384,9 @@ def main():
 
         # close the slaves list file
         SLAVE_LIST_HANDLE.close
-        pass
+
+        # set-up script
+        script_post()
     else:
         # technically should never ever get here since argparse should handle invalid options
         log_info(f'# [!] main: setup type {args.setup} not supported!')
@@ -384,12 +396,12 @@ if __name__ == "__main__":
     # check operating system
     if not sys.platform == 'linux':
         print(f'# [!] unsupported operating system, currently only runs on Linux')
-        #sys.exit() # DEBUG - Remove this in prod
+        sys.exit() 
 
     # check if user is root
     if os.geteuid() != 0:
         print(f'# [!] must be run with root privileges')
-        #sys.exit() # DEBUG - Remove this in prod
+        sys.exit() 
 
     # call the main function
     main()
