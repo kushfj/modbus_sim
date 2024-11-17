@@ -1,7 +1,6 @@
 *~
 *.sw?
-.ipynb_checkpoints/
-*.ipynb
+python-venv/
 *.log
 *.txt
 *.sh
