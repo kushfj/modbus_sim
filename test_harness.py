@@ -301,6 +301,11 @@ def main():
             # create sub-interface - TODO: accept network address as parameter
             #command = f'ifconfig {IFACE}.{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
 
+            # delete the interface in case it existed
+            command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} down'
+            print(command)
+
+            # create new interface
             command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} {ip_addr} hw ether {mac_addr} up'
             print(command)
 
@@ -351,6 +356,11 @@ def main():
             ip_addr = f'10.20.20.{i+1}'
 
             #command = f'ifconfig {IFACE}.{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
+            # delete the interface if it exists
+            command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} down'
+            print(command)
+
+            # create new interface
             command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} {ip_addr} hw ether {mac_addr} up'
             print(command)
 
