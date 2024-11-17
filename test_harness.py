@@ -321,7 +321,7 @@ def main():
                 print(command)
 
                 # execute the modbus prototype server on each sub-interface
-                command = f'sudo python3 proto_client.py -i {slave_ip} 502 &' 
+                command = f'sudo python3 proto_client.py -i {slave_ip} -p 502 &' 
                 print(command)
 
         pass
@@ -365,7 +365,7 @@ def main():
             print(command)
 
             # execute the modbus prototype client on each sub-interface - and send to background
-            command = f'sudo python3 proto_server.py -i {ip_addr} 502 &'
+            command = f'sudo python3 proto_server.py -i {ip_addr} -p 502 &'
             print(command)
 
             # write the slave IP address to the slave list output file
