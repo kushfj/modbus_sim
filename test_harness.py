@@ -52,6 +52,14 @@ SLAVE_LIST_HANDLE = None
 # function definitions
 #
 
+def script_preamble():
+    """
+    Function to set the shebang and the virtual environment activation for Python
+    """
+    print('#!/usr/bin/bash')
+    print('. ./python_env/bin/activate')
+
+
 def append_to_slave_list(ip_addr : str, slaves_list_filename : str = DEFAULT_SLAVES_LIST_FILENAME):
     """
     Function to write the specified IP address to the slaves list file. If not slaves list filename is specified the default DEFAULT_SLAVES_LIST_FILENAME filename is used. If no IP address is specified then the function simply returns
@@ -282,6 +290,9 @@ def main():
         num_per_chunk = math.ceil(len(slaves)/num)
         slave_chunks = list(chunkify(slaves, num_per_chunk))
 
+        # set-up script
+        script_preamble()
+
         # generate commands to create sub-interfaces on VM for each master, we iterate using the slave_chunks in case the number of chunks is less than the number of masters specified
         for i in range(len(slave_chunks)):
             mac_addr = create_mac_addr()
@@ -330,6 +341,9 @@ def main():
             slaves_list = DEFAULT_SLAVES_LIST_FILENAME
         else:
             slaves_list = args.slaves_list
+
+        # set-up script
+        script_preamble()
 
         # generate commands to create sub-interfaces on VM for each slave
         for i in range(num):
