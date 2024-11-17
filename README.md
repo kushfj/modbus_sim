@@ -90,6 +90,13 @@ Ensure that the development environment set-up is completed on both the client a
 
 ## Development Environment
 
+
+### Ubuntu VMs Prep
+
+  * Must have Python3 installed `sudo apt install python3`
+  * Must have Python3 Virtual Environment installed `sudo apt install python3.12-venv`
+  * Must have Git installed `sudo apt install git`
+
 ### Set-up
 
 * python -m venv python_venv
@@ -98,8 +105,11 @@ Ensure that the development environment set-up is completed on both the client a
 * pip install pymodbus # or pip install -r requirements.txt
 
 
+
+
 ## Future Work
 
+* Test harness clean-up script to kill all slaves/servers, remove routes and interfaces created
 * User configurable payloads e.g. from a configuration file
 * User customisable IP addresses and interfaces for test harness
 * User customisable slave function, read, write, read/write
