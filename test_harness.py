@@ -303,7 +303,7 @@ def main():
         # generate commands to create sub-interfaces on VM for each master, we iterate using the slave_chunks in case the number of chunks is less than the number of masters specified
         for i in range(len(slave_chunks)):
             mac_addr = create_mac_addr()
-            ip_addr = f'10.10.10.{i+1}'
+            ip_addr = f'10.10.10.{255-(i+1)}'
 
             # create sub-interface - TODO: accept network address as parameter
             #command = f'ifconfig {IFACE}:{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
@@ -313,12 +313,12 @@ def main():
             print(command)
 
             # create new interface
-            command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} {ip_addr} hw ether {mac_addr} up'
+            command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} {ip_addr}/24 hw ether {mac_addr} up'
             print(command)
 
             # delete the route created 
-            command = f'sudo /usr/sbin/route del -net 10.0.0.0 netmask 255.0.0.0 dev {IFACE}:{i+1}'
-            print(command)
+            #command = f'sudo /usr/sbin/route del -net 10.0.0.0 netmask 255.0.0.0 dev {IFACE}:{i+1}'
+            #print(command)
 
             # process each slave in the current chunk
             for slave_ip in slave_chunks[i]:
@@ -363,7 +363,7 @@ def main():
         # generate commands to create sub-interfaces on VM for each slave
         for i in range(num):
             mac_addr = create_mac_addr()
-            ip_addr = f'10.20.20.{i+1}'
+            ip_addr = f'10.10.10.{i+1}'
 
             #command = f'ifconfig {IFACE}:{i+1} hw ether {mac_addr} {ip_addr} netmask 255.0.0.0 up'
             # delete the interface if it exists
@@ -371,7 +371,7 @@ def main():
             print(command)
 
             # create new interface
-            command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} {ip_addr} hw ether {mac_addr} up'
+            command = f'sudo /usr/sbin/ifconfig {IFACE}:{i+1} {ip_addr}/24 hw ether {mac_addr} up'
             print(command)
 
             # execute the modbus prototype client on each sub-interface - and send to background
